@@ -388,6 +388,24 @@ function frame(now) {
     updatePolice(state, scene, dt, state.elapsed,
       () => endDay('BUSTED', 'The Bay Police boxed you in. Bail is $500 — your money is gone, but the story goes on.'),
       (dmg, reason) => damagePlayer(dmg, reason));
+    // chase screenshot staging: hold the police cars in a visible formation
+    // ahead of the player. In real play they chase from behind, so the chase
+    // camera never sees them; here the pack stays glued to the player's speed
+    // and angle, staggered across the avenue's lanes.
+    if (state.shotMode === 'chase' && state.player.car) {
+      const lead = state.player.car;
+      const spots = [[-3.5, 8], [3.5, 13], [-3.5, 18]];
+      const fx = Math.sin(lead.angle), fz = Math.cos(lead.angle);
+      const rx = Math.cos(lead.angle), rz = -Math.sin(lead.angle);
+      state.police.forEach((unit, i) => {
+        const s = spots[i % spots.length];
+        unit.car.x = lead.x + rx * s[0] + fx * s[1];
+        unit.car.z = lead.z + rz * s[0] + fz * s[1];
+        unit.car.angle = lead.angle;
+        unit.car.speed = lead.speed;
+        syncCarMesh(unit.car, dt, state.elapsed);
+      });
+    }
     audio.updateSiren(state.police.length > 0);
     updateEnemies(state, dt, {
       onEnemyShot: () => audio.playGunshot(),
