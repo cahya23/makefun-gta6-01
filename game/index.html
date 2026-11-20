@@ -1,19 +1,126 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Block Dodger</title>
+<title>Solmar Bay — Sunport Heist</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #11141b; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-  /* Read aloud, never shown: the status line screen readers announce. */
-  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0b1c2c;
+    font-family:Verdana,Arial,sans-serif;color:#fff;}
+  #game-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;}
+  #hud{position:fixed;inset:0;pointer-events:none;display:none;}
+  #hud.on{display:block;}
+  .panel{background:rgba(8,20,32,.72);border:1px solid rgba(255,255,255,.18);border-radius:10px;
+    padding:8px 12px;text-shadow:0 1px 2px #000;}
+  #stats{position:absolute;top:12px;left:12px;font-size:15px;line-height:1.5;}
+  #stats .money{color:#7dff9b;font-weight:bold;font-size:19px;}
+  #healthbar{width:170px;height:12px;background:#222;border:1px solid #fff3;border-radius:6px;margin-top:4px;}
+  #healthfill{height:100%;width:100%;background:linear-gradient(90deg,#ff5a4e,#ffb347);border-radius:6px;}
+  #wanted{position:absolute;top:12px;right:12px;text-align:right;font-size:15px;}
+  #stars{font-size:26px;letter-spacing:3px;color:#ffd23e;text-shadow:0 0 8px #000;}
+  #clock{font-size:20px;font-weight:bold;}
+  #objective{position:absolute;top:12px;left:50%;transform:translateX(-50%);max-width:520px;
+    text-align:center;font-size:15px;}
+  #objective b{color:#ffd23e;}
+  #toast{position:absolute;top:110px;left:50%;transform:translateX(-50%);font-size:19px;font-weight:bold;
+    color:#ffe27a;text-shadow:0 2px 6px #000;text-align:center;}
+  #minimap-wrap{position:absolute;left:12px;bottom:12px;border:2px solid rgba(255,255,255,.55);
+    border-radius:50%;overflow:hidden;box-shadow:0 0 0 3px rgba(0,0,0,.45);}
+  #minimap{display:block;background:#123;}
+  #hint{position:absolute;right:12px;bottom:12px;font-size:12px;line-height:1.6;text-align:right;}
+  #crosshair{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;
+    font-size:18px;text-align:center;color:#fff;text-shadow:0 0 4px #000;display:none;}
+  #speedo{position:absolute;right:12px;bottom:96px;font-size:26px;font-weight:bold;text-align:right;
+    text-shadow:0 2px 4px #000;}
+  #speedo small{font-size:12px;display:block;color:#cfe8ff;}
+  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg,rgba(6,26,44,.88),rgba(120,40,10,.55));z-index:10;}
+  .card{max-width:640px;width:92%;background:rgba(5,18,30,.92);border:2px solid #ffb347;border-radius:16px;
+    padding:26px 30px;text-align:center;box-shadow:0 12px 50px rgba(0,0,0,.7);}
+  .card h1{margin:0 0 4px;font-size:42px;letter-spacing:2px;color:#ffd23e;
+    text-shadow:0 3px 0 #b3541e,0 6px 18px #000;}
+  .card h2{margin:0 0 14px;font-size:17px;color:#7dd8ff;font-weight:normal;letter-spacing:3px;}
+  .card p{font-size:14px;line-height:1.65;color:#e8f2ff;text-align:left;}
+  .card .keys{font-size:13px;line-height:1.9;text-align:left;background:#0d2a40;border-radius:10px;
+    padding:10px 14px;margin:12px 0;}
+  .bigbtn{pointer-events:auto;cursor:pointer;background:linear-gradient(180deg,#ffb347,#ff7a1a);
+    color:#231303;border:0;border-radius:12px;padding:14px 34px;font-size:20px;font-weight:bold;
+    letter-spacing:1px;margin-top:8px;}
+  .bigbtn:hover{filter:brightness(1.12);}
+  .smallbtn{pointer-events:auto;cursor:pointer;background:#12395a;color:#fff;border:1px solid #7dd8ff;
+    border-radius:8px;padding:8px 16px;font-size:14px;margin:6px 4px 0;}
+  #start-screen{display:flex;}
+  #pause-screen,#end-screen{display:none;}
+  #end-title{font-size:34px;color:#ff6b5e;}
 </style>
+<script type="importmap">
+{"imports":{"three":"./vendor/three.module.min.js"}}
+</script>
 </head>
 <body>
-<canvas id="game" aria-label="Block Dodger: move the paddle left and right to dodge falling blocks and catch coins"></canvas>
-<p id="status" role="status" aria-live="polite"></p>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+  <div id="stats" class="panel">
+    <div class="money" id="money">$0</div>
+    <div>Respect: <span id="respect">0</span> &nbsp;|&nbsp; <span id="veh-label">On foot</span></div>
+    <div id="healthbar"><div id="healthfill"></div></div>
+    <div style="font-size:12px">Health <span id="health-num">100</span> &nbsp; Ammo <span id="ammo">0</span></div>
+  </div>
+  <div id="wanted" class="panel">
+    <div id="stars"></div>
+    <div id="clock">09:00</div>
+    <div id="day-label">Solmar Bay &middot; Day 1</div>
+  </div>
+  <div id="objective" class="panel"><b id="mission-title">Free Roam</b><br><span id="mission-text">Explore Solmar Bay. Press M to start a mission.</span></div>
+  <div id="toast"></div>
+  <div id="minimap-wrap"><canvas id="minimap" width="180" height="180"></canvas></div>
+  <div id="hint" class="panel">WASD move / drive &middot; E enter car<br>Mouse drag camera &middot; Click shoot<br>F punch &middot; M mission &middot; P pause</div>
+  <div id="speedo"><span id="speed-num">0</span> km/h<small id="speed-gear">PARKED</small></div>
+  <div id="crosshair">+</div>
+</div>
+
+<div id="start-screen" class="overlay">
+  <div class="card">
+    <h1>SOLMAR BAY</h1>
+    <h2>SUNPORT HEIST &middot; AN OPEN-WORLD CRIME STORY</h2>
+    <p><b>Raka</b> is a courier driver in Solmar Bay, a sun-soaked coastal city of palm avenues,
+    beachfront towers and a busy harbour. One bad delivery pulls him into a heist crew led by
+    <b>Mira</b>. Steal cars, outrun the Bay Police, fight rival crews and pull off five story
+    missions — from a first delivery to the Sunport Heist itself.</p>
+    <div class="keys">
+      <b>WASD</b> walk / drive &nbsp; <b>Shift</b> sprint &nbsp; <b>E</b> steal / enter car &nbsp;
+      <b>Mouse drag</b> camera<br>
+      <b>Left click</b> shoot (when armed) &nbsp; <b>F</b> punch &nbsp; <b>M</b> start next mission<br>
+      <b>Space</b> handbrake &nbsp; <b>P</b> pause &nbsp; <b>R</b> respawn car &nbsp; Progress saves automatically
+    </div>
+    <button class="bigbtn" id="play-btn">START ENGINE</button><br>
+    <button class="smallbtn" id="continue-btn">CONTINUE SAVED GAME</button>
+    <button class="smallbtn" id="how-btn">HOW TO PLAY</button>
+    <p style="text-align:center;font-size:12px;color:#9fc3dd">A fully original game. Own city, characters,
+    story, art and sound. No part of any commercial game is used.</p>
+  </div>
+</div>
+
+<div id="pause-screen" class="overlay">
+  <div class="card">
+    <h1 style="font-size:32px">PAUSED</h1>
+    <p style="text-align:center">Solmar Bay waits for no one — except right now.</p>
+    <button class="bigbtn" id="resume-btn">RESUME</button><br>
+    <button class="smallbtn" id="save-btn">SAVE GAME</button>
+    <button class="smallbtn" id="restart-btn">RESTART DAY</button>
+  </div>
+</div>
+
+<div id="end-screen" class="overlay">
+  <div class="card">
+    <h1 id="end-title">BUSTED</h1>
+    <p id="end-text" style="text-align:center">The Bay Police caught up with Raka.</p>
+    <button class="bigbtn" id="retry-btn">TRY AGAIN</button><br>
+    <button class="smallbtn" id="end-menu-btn">BACK TO MENU</button>
+  </div>
+</div>
+
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
