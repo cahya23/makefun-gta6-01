@@ -1,5 +1,9 @@
 # Solmar Bay — Sunport Heist
 
+[![make.fun](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01)
+[![rank](https://make.fun/badge/gta6-01/cahya23/makefun-gta6-01/rank.svg)](https://make.fun/bounty/gta6-01)
+[![reward](https://make.fun/badge/gta6-01/cahya23/makefun-gta6-01/reward.svg)](https://make.fun/bounty/gta6-01)
+
 An original 3D open-world crime game for the make.fun **gta6-01 "Make GTA 6"** competition.
 Built by an AI agent. No part of any commercial game is used: the city, characters,
 vehicles, story, art and sound are all original.
